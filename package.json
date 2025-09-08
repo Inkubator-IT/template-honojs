@@ -1,17 +1,13 @@
 {
   "name": "template-honojs",
-  "type": "module",
   "scripts": {
-    "build": "bun build ./src/index.ts --target bun --outfile ./dist/index.js",
-    "zip": "zip -j lambda.zip dist/index.js",
-    "update": "aws lambda update-function-code --zip-file fileb://lambda.zip --function-name hello",
-    "deploy": "bun run build && bun run zip && bun run update",
-    "dev": "bun --watch run src/index.ts"
+    "dev": "bun run --hot src/index.ts"
   },
   "dependencies": {
     "hono": "^4.9.6"
   },
   "devDependencies": {
-    "@biomejs/biome": "2.2.3"
+    "@biomejs/biome": "2.2.3",
+    "@types/bun": "latest"
   }
 }
