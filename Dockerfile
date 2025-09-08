@@ -1,6 +1,5 @@
-FROM oven/bun:alpine AS base
+FROM oven/bun:alpine
 
-FROM base AS deps
 WORKDIR /app
 
 # Install dependencies
@@ -10,7 +9,11 @@ RUN bun install --frozen-lockfile
 # Copy source code
 COPY . .
 
-# Run the app
-USER hono
-EXPOSE 5050/tcp
-CMD ["bun", "src/index.ts"]
+# Runtime configuration
+# Ensure you duplicate `.env.example` to `.env` and update values accordingly.
+# `APP_PORT` should be defined in `.env`; the value here is the default.
+ENV APP_PORT=3000
+EXPOSE ${APP_PORT}
+
+USER bun
+CMD ["bun", "run", "start"]
