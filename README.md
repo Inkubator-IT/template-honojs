@@ -1,4 +1,11 @@
-```
+To install dependencies:
+```sh
 bun install
-bun run deploy
 ```
+
+To run:
+```sh
+bun run dev
+```
+
+open http://localhost:3000
