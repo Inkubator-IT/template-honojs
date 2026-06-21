@@ -7,6 +7,6 @@ app.get("/", (c) => {
 });
 
 export default {
-	port: Bun.env.APP_PORT,
+	port: Number(Bun.env.APP_PORT) || 3000,
 	fetch: app.fetch,
 };
