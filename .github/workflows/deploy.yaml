@@ -1,30 +1,91 @@
-name: Build Docker images
+name: CI/CD
 
 on:
+  pull_request:
   push:
-    branches: ["main"]
+    branches:
+      - main
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
 
 jobs:
-  build-and-push-dockerfile-image:
-    if: startsWith(github.repository, 'Inkubator-IT/template-') == false
+  quality:
+    name: Quality
     runs-on: ubuntu-latest
+    timeout-minutes: 10
 
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Log in to Docker Hub
+      - name: Set up Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.4.2
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Run quality checks
+        run: bun run check
+
+      - name: Audit dependencies
+        run: bun audit
+
+  publish:
+    name: Publish GHCR image
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main' && startsWith(github.repository, 'Inkubator-IT/template-') == false
+    needs: quality
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Log in to GHCR
         uses: docker/login-action@v3
         with:
-          username: ${{ secrets.DOCKERHUB_USERNAME }}
-          password: ${{ secrets.DOCKERHUB_TOKEN }}
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Build and push Docker image
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Resolve image repository and short commit SHA
+        id: vars
+        run: |
+          echo "repository=${GITHUB_REPOSITORY,,}" >> "$GITHUB_OUTPUT"
+          echo "short_sha=${GITHUB_SHA::7}" >> "$GITHUB_OUTPUT"
+
+      - name: Build and push image
         uses: docker/build-push-action@v6
         with:
           context: .
           file: ./Dockerfile
           push: true
           tags: |
-            namespace/example:latest
-          platforms: linux/amd64
+            ghcr.io/${{ steps.vars.outputs.repository }}:latest
+            ghcr.io/${{ steps.vars.outputs.repository }}:sha-${{ steps.vars.outputs.short_sha }}
+
+  # dokploy:
+  #   name: Deploy to Dokploy
+  #   if: github.event_name == 'push' && github.ref == 'refs/heads/main' && startsWith(github.repository, 'Inkubator-IT/template-') == false
+  #   needs: publish
+  #   runs-on: ubuntu-latest
+  #   timeout-minutes: 5
+  #   environment: production
+  #   steps:
+  #     - name: Trigger Dokploy webhook
+  #       env:
+  #         DOKPLOY_WEBHOOK_URL: ${{ secrets.DOKPLOY_WEBHOOK_URL }}
+  #       run: curl --fail-with-body --silent --show-error --request POST "$DOKPLOY_WEBHOOK_URL"

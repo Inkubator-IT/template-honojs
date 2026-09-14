@@ -1,19 +1,17 @@
-FROM oven/bun:alpine
+FROM oven/bun:1.4.2-alpine
 
 WORKDIR /app
 
-# Install dependencies
-COPY package.json bun.lock ./
-RUN bun install --frozen-lockfile
+# Install production dependencies only.
+COPY --chown=bun:bun package.json bun.lock ./
+RUN bun install --frozen-lockfile --production
 
-# Copy source code
-COPY . .
+# Copy application source with the runtime user's ownership.
+COPY --chown=bun:bun src ./src
 
 # Runtime configuration
-# Ensure you duplicate `.env.example` to `.env` and update values accordingly.
-# `APP_PORT` should be defined in `.env`; the value here is the default.
 ENV APP_PORT=3000
-EXPOSE ${APP_PORT}
+EXPOSE 3000
 
 USER bun
 CMD ["bun", "run", "start"]

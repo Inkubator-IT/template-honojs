@@ -1,10 +1,4 @@
-import { Hono } from "hono";
-
-const app = new Hono();
-
-app.get("/", (c) => {
-	return c.text("Hello Hono!");
-});
+import app from "./app";
 
 export default {
 	port: Number(Bun.env.APP_PORT) || 3000,
